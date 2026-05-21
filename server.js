@@ -51,7 +51,7 @@ function verifyAPK(req, res, next) {
 
     if (!token) {
         return res.status(403).json({
-            error: "Missing APK token"
+            error: "اطلع ولك جاي تريد تسحب الملفات 😂"
         });
     }
 
