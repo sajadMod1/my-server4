@@ -3,10 +3,21 @@ const crypto = require('crypto');
 
 const app = express();
 
-// لازم يكونوا 32 بايت و 16 بايت
-const SECRET_KEY = Buffer.from(process.env.SECRET_KEY, 'utf8'); // 32 bytes
-const IV = Buffer.from(process.env.IV, 'utf8'); // 16 bytes
+/**
+ * 🔥 FIX: ضمان fetch في Vercel / Node environments
+ */
+const fetch = (...args) =>
+  import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
+/**
+ * 🔐 Keys
+ */
+const SECRET_KEY = Buffer.from(process.env.SECRET_KEY, 'utf8');
+const IV = Buffer.from(process.env.IV, 'utf8');
+
+/**
+ * 🔒 Encrypt function
+ */
 function encrypt(text) {
     const cipher = crypto.createCipheriv('aes-256-cbc', SECRET_KEY, IV);
 
@@ -16,28 +27,41 @@ function encrypt(text) {
     return encrypted;
 }
 
-// رابط الملف الحقيقي
+/**
+ * 📦 Config URL (GitHub)
+ */
 const CONFIG_URL =
-  "https://raw.githubusercontent.com/sajadMod1/Raven1/refs/heads/main/config.json";
+  "https://raw.githubusercontent.com/sajadMod1/Raven1/main/config.json";
 
+/**
+ * 🚀 API Route
+ */
 app.get('/signchk', async (req, res) => {
     try {
+        console.log("Fetching:", CONFIG_URL);
+
         const response = await fetch(CONFIG_URL);
-        if (!response.ok) throw new Error("Fetch failed");
+
+        if (!response.ok) {
+            throw new Error("GitHub fetch failed: " + response.status);
+        }
 
         const data = await response.text();
 
         const encrypted = encrypt(data);
 
-        res.json({
+        return res.status(200).json({
             data: encrypted
         });
 
     } catch (err) {
-        res.status(500).json({ error: 'Failed to fetch or encrypt' });
+        console.error("ERROR:", err.message);
+
+        return res.status(500).json({
+            error: 'Failed to fetch or encrypt',
+            debug: err.message
+        });
     }
 });
 
-app.listen(3000, () => {
-    console.log("Proxy running on port 3000");
-});
+module.exports = app;
